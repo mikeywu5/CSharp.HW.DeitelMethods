@@ -9,16 +9,16 @@ using System.Diagnostics;
 using NUnit.Framework;
 using System.Text.RegularExpressions;
 
-namespace CSharp.Assignments.Tests.Library
+namespace CSharp.Tests.Library
 {
     /// <summary>
-    /// Expects to equal, equal ignoring case, contain, start with, end with,
+    /// Expects to equal, equal ignoring cse, contain, start with, end with,
     /// match, not equal, not equal ignoring case, not start with, and not end with.
     /// Adding expect to assert continuously allows the assertions to check
     /// until it matches the criteria.
-    /// Expect to assert continuously continues on the next statement until it is found.
+    /// Expect to go continues on the next statement.
     /// </summary>
-
+    [Flags]
     public enum ExpectTo
     {
         Equal,
@@ -32,7 +32,8 @@ namespace CSharp.Assignments.Tests.Library
         NotMatch,
         NotStartWith,
         NotEndWith,
-        AssertContinuously = 65536
+        AssertContinuously = 65536,
+        Go = 131072
     }
 
     //[DebuggerNonUserCode]
@@ -63,8 +64,8 @@ namespace CSharp.Assignments.Tests.Library
                     Console.SetOut(sw);
                     Console.SetError(se);
                     action();
-                    error = se.ToString()?.Replace("\r", "").TrimEnd();
-                    return sw.ToString()?.Replace("\r", "").TrimEnd();
+                    error = se.ToString();
+                    return sw.ToString();
                 }
             }
         }
@@ -155,32 +156,23 @@ namespace CSharp.Assignments.Tests.Library
             {
                 string act = actuals[line - 1];
                 var a = act.TrimEnd();
-                if (i >= expected.Length)
-                {
-                    if (continueSearching)
-                    {
-                        return string.Join(Environment.NewLine, actuals.Skip(line - 1));
-                    }
-                    else
-                    {
-                        UnitTestingAssert.AreEqual(null, a, $"Actual line {line} should end at the same time as the expected line.");
-                        return "";
-                    }
-                }
                 var o = expected[i];
 
                 if (o is ExpectTo)
                 {
                     expects = (ExpectTo)o;
-
+                    if (ExpectTo.Go == (expects & ExpectTo.Go))
+                    {
+                        return string.Join(Environment.NewLine, actuals.Skip(line - 1));
+                    }
                     continueSearching = ExpectTo.AssertContinuously == (expects & ExpectTo.AssertContinuously);
                     expects = expects & (ExpectTo)65535;
 
                     i++;
                     line--;
-                    if (!continueSearching && i >= expected.Length)
+                    if (i >= expected.Length)
                     {
-                        UnitTestingAssert.AreEqual(null, a, $"Actual line {line} should end at the same time as the expected line.");
+                        UnitTestingAssert.Fail($"Expected string has reached to the end of line. Actual at Line {line}: {a}");
                         return "";
                     }
 
@@ -192,7 +184,7 @@ namespace CSharp.Assignments.Tests.Library
                     {
                         return string.Join(Environment.NewLine, actuals.Skip(line - 1));
                     }
-                    UnitTestingAssert.AreEqual(null, a, $"Actual line {line} should end at the same time as the expected line.");
+                    UnitTestingAssert.Fail($"Expected string has reached to the end of line. Actual at Line {line}: {a}");
                     return "";
                 }
 
@@ -235,15 +227,17 @@ namespace CSharp.Assignments.Tests.Library
                 i++;
                 expectedLine++;
             }
-            if (!continueSearching && i < expected.Length)
+            if (expects < ExpectTo.NotEqual && i < expected.Length)
             {
-                UnitTestingAssert.AreEqual(expected[i], null, $"The Actual line has passed the end, but there is at least one {expects} at expected line no. {expectedLine}.");
+                UnitTestingAssert.Fail($"Expected string has reached to the end of line. Expected line {expectedLine}: {expected[i]}");
             }
             return "";
         }
 
         private static bool Assert(string actual, ExpectTo expectsTo, string expected, string message)
         {
+            expected = expected.TrimEnd();
+            actual = actual.TrimEnd();
             bool r;
             switch (expectsTo)
             {

@@ -2,10 +2,10 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using CSharp.Assignments.Tests.Library;
+using CSharp.Tests.Library;
 using NUnit.Framework;
 
-namespace CSharp.Assignments.Tests
+namespace CSharp.Methods.Tests
 {
     public class MethodArithmeticTests
     {
